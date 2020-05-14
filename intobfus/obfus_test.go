@@ -301,10 +301,23 @@ func TestRestoreOK(t *testing.T) {
 	}
 }
 
-func TestRestoreFail(t *testing.T) {
+func TestRestoreNoModInverse(t *testing.T) {
 	_, err := Restore(
 		9999999999,
 		5000000000,
+	)
+	if err == nil {
+		t.Fatal("no error?!")
+	}
+	if _, ok := err.(ErrKey); !ok {
+		t.Fatalf("unexpected error: %+v (%T)", err, err)
+	}
+}
+
+func TestRestoreInvalidKey(t *testing.T) {
+	_, err := Restore(
+		199,
+		201,
 	)
 	if err == nil {
 		t.Fatal("no error?!")

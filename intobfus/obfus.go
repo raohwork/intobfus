@@ -130,6 +130,11 @@ func (o *obfus) Explain(code uint64) (ret uint64, err error) {
 // You can call GenKey() to obtain the key. Providing invalid parameters results
 // ErrRestore in err.
 func Restore(max, key uint64) (ret Obfuscator, err error) {
+	if key >= max {
+		err = ErrKey(key)
+		return
+	}
+
 	base := (&big.Int{}).Add(newUint(max), big.NewInt(1))
 	d := &obfus{
 		base:   base,
