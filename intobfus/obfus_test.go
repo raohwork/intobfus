@@ -341,7 +341,7 @@ func safeTest(o Obfuscator, m map[uint64]uint64, i uint64) func(t *testing.T) {
 
 func safeBitTest(bits int) func(t *testing.T) {
 	return func(t *testing.T) {
-		max := uint64(1) << bits
+		max := uint64(1) << uint(bits)
 		key, err := GenKey(max)
 		if err != nil {
 			t.Fatal("unexpected error: ", err)
