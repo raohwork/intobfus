@@ -6,7 +6,7 @@ Simple helper to obfuscate serial, integer numbers (id in particular).
 
 # Synopsis
 
-See [examples](https://godoc.org/github.com/raohwork/intobfus#pkg-examples)
+See [examples](https://godoc.org/github.com/raohwork/intobfus/intobfus#pkg-examples)
 
 # CLI helper
 
