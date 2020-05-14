@@ -36,7 +36,7 @@ func Pipe(parts ...Obfuscator) (ret Obfuscator) {
 	return &pipe{parts: parts}
 }
 
-// PipeByKeys is same as Pipe(), just accepts keys instead of Obfuscator instances
+// PipeByKey is same as Pipe(), just accepts keys instead of Obfuscator instances
 func PipeByKey(max uint64, keys ...uint64) (ret Obfuscator, err error) {
 	parts := make([]Obfuscator, len(keys))
 
@@ -53,7 +53,7 @@ func PipeByKey(max uint64, keys ...uint64) (ret Obfuscator, err error) {
 	return
 }
 
-// MustPipeByKeys is same as PipeByKeys(), just wraps error with panic
+// MustPipeByKey is same as PipeByKey(), just wraps error with panic
 func MustPipeByKey(max uint64, keys ...uint64) (ret Obfuscator) {
 	ret, err := PipeByKey(max, keys...)
 	if err != nil {
