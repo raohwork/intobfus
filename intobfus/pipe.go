@@ -31,6 +31,8 @@ func (p *pipe) Explain(code uint64) (ret uint64, err error) {
 
 // Pipe returns an Obfuscator that interates through provided parts
 //
+// Using parts with different max value WILL produce incorrect number. Use with care.
+//
 // See example for how and what it does
 func Pipe(parts ...Obfuscator) (ret Obfuscator) {
 	return &pipe{parts: parts}
