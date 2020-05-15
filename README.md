@@ -18,6 +18,8 @@ go get github.com/raohwork/intobfus
 intobfus -pass 3 -bits 32
 # or for 1~283476
 intobfus -pass 3 -max 283476
+# show some data to stderr
+intobfus -pass 3 -bits 64 -show
 ```
 
 # License

@@ -27,25 +27,27 @@ func bybit(bit uint) (max uint64) {
 	return
 }
 
-func genkey(max uint64) {
+func genkey(max uint64) (key uint64) {
 	key, err := intobfus.GenKey(max)
 	if err != nil {
 		log.Fatal("cannot generate key: ", err)
 	}
 
 	fmt.Printf("intobfus.Restore(%d, %d)\n", max, key)
+
+	return
 }
 
-func genkeys(max uint64, pass uint) {
+func genkeys(max uint64, pass uint) (keys []uint64) {
 	if pass < 1 {
 		log.Fatal("at least 1 pass")
 	}
 	if pass == 1 {
-		genkey(max)
+		keys = []uint64{genkey(max)}
 		return
 	}
 
-	keys := make([]uint64, pass)
+	keys = make([]uint64, pass)
 	for p := uint(0); p < pass; p++ {
 		key, err := intobfus.GenKey(max)
 		if err != nil {
@@ -61,6 +63,8 @@ func genkeys(max uint64, pass uint) {
 		fmt.Printf("\t%d,\n", k)
 	}
 	fmt.Println(")")
+
+	return
 }
 
 func main() {
@@ -68,10 +72,12 @@ func main() {
 		max  uint64
 		pass uint
 		bits uint
+		show bool
 	)
 	flag.Uint64Var(&max, "max", 0, "Allows 100 ~ 2^64-1. If your serial number is bwtween 1~255, you should use 255. It overrides bits setting.")
 	flag.UintVar(&pass, "pass", 3, "Generates a Pipe() with n nifferent keys")
 	flag.UintVar(&bits, "bits", 0, "Allows only 8~64. Set max with bits. -bits=8 euqals to -max=255")
+	flag.BoolVar(&show, "show", false, "show some values to stderr to see if it is what you want")
 	flag.Parse()
 
 	if max == 0 && bits == 0 {
@@ -87,5 +93,24 @@ func main() {
 		m = max
 	}
 
-	genkeys(m, pass)
+	keys := genkeys(m, pass)
+	if show {
+		showDemo(m, keys)
+	}
+}
+
+func showDemo(max uint64, keys []uint64) {
+	p := intobfus.MustPipeByKey(max, keys...)
+
+	if max >= 500 {
+		max = 500
+	}
+
+	for i := uint64(1); i < max; i++ {
+		log.Printf(
+			"Obfuscate(%3d) = %19d",
+			i,
+			p.Obfuscate(i),
+		)
+	}
 }
