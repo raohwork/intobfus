@@ -18,7 +18,7 @@ func TestModMul8Bit(t *testing.T) {
 		for j := uint64(0); j <= i; j++ {
 			expect := i * j
 			expect = expect % base
-			actual := ModMul(i, j, max)
+			actual := modmul(i, j, max)
 			if expect != actual {
 				t.Fatalf(
 					"%d*%d %% %d = %d (should be %d)",
@@ -26,6 +26,24 @@ func TestModMul8Bit(t *testing.T) {
 				)
 			}
 		}
+	}
+}
+
+func TestModMulSmall(t *testing.T) {
+	max := uint64(math.MaxUint8)
+
+	a := newUint(max)
+	e := (&big.Int{}).Mul(a, a)
+	expect := e.Mod(
+		e,
+		(&big.Int{}).Add(a, big.NewInt(1)),
+	).Uint64()
+	actual := ModMul(max, max, max)
+	if expect != actual {
+		t.Fatalf(
+			"%d*%d %% %d = %d (should be %d)",
+			max, max, max, actual, expect,
+		)
 	}
 }
 
@@ -443,4 +461,42 @@ func BenchmarkDecode(b *testing.B) {
 	for x := 0; x < b.N; x++ {
 		o.Explain(2)
 	}
+}
+
+func benchmarkModMul(max uint64) func(*testing.B) {
+	return func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			ModMul(max, max, max)
+		}
+	}
+}
+
+func benchmarkBigInt(max uint64) func(*testing.B) {
+	return func(b *testing.B) {
+		v := &big.Int{}
+		n := (&big.Int{}).SetUint64(max)
+		base := (&big.Int{}).SetUint64(max)
+		base.Add(base, big.NewInt(1))
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			v.Mul(n, n)
+			v.Mod(v, base)
+			v.Uint64()
+		}
+	}
+}
+
+func BenchmarkModMul(b *testing.B) {
+	b.Run("8", benchmarkModMul(math.MaxInt8))
+	b.Run("16", benchmarkModMul(math.MaxInt16))
+	b.Run("32", benchmarkModMul(math.MaxInt32))
+	b.Run("64", benchmarkModMul(math.MaxInt64))
+}
+
+func BenchmarkBigInt(b *testing.B) {
+	b.Run("8", benchmarkBigInt(math.MaxInt8))
+	b.Run("16", benchmarkBigInt(math.MaxInt16))
+	b.Run("32", benchmarkBigInt(math.MaxInt32))
+	b.Run("64", benchmarkBigInt(math.MaxInt64))
 }

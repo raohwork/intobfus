@@ -71,6 +71,14 @@ func GenKey(max uint64) (prime uint64, err error) {
 // It implements Schrage's algorithm, which is 2x faster than math/big.Int for
 // uint64 and below.
 func ModMul(a, b, m uint64) (ret uint64) {
+	if m <= math.MaxUint32 {
+		return (a * b) % (m + 1)
+	}
+
+	return modmul(a, b, m)
+}
+
+func modmul(a, b, m uint64) (ret uint64) {
 	if a == 0 || b == 0 {
 		return 0
 	}
@@ -91,7 +99,7 @@ func ModMul(a, b, m uint64) (ret uint64) {
 	x := a * (b % q)
 	var y uint64
 	if r > q {
-		y = ModMul(r, b/q, m)
+		y = modmul(r, b/q, m)
 	} else {
 		y = b / q
 		y *= r
