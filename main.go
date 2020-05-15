@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 
 	"github.com/raohwork/intobfus/intobfus"
@@ -18,7 +19,11 @@ func bybit(bit uint) (max uint64) {
 		log.Fatal("intobfus supports only 8~64 bits serial numbers")
 	}
 
-	max = uint64(1) << bit
+	if bit == 64 {
+		return math.MaxUint64
+	}
+
+	max = uint64(1)<<bit - 1
 	return
 }
 
