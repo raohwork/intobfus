@@ -16,15 +16,6 @@ func newUint(i uint64) (ret *big.Int) {
 	return
 }
 
-type obfus struct {
-	base   *big.Int // max+1
-	encKey *big.Int
-	decKey *big.Int
-	key    uint64
-	a      uint64 // enc(key), but used as enc(1), enc(key) is changed to b
-	b      uint64 // enc(a), but used as enc(key), and enc(a) is changed to 1
-}
-
 func genRandPrime(max, lower *big.Int) (ret *big.Int, err error) {
 	b := math.Log2(float64(max.Uint64()))
 	lb := math.Log2(float64(lower.Uint64()))
@@ -75,40 +66,80 @@ func GenKey(max uint64) (prime uint64, err error) {
 	return
 }
 
-func (o *obfus) enc(n uint64) (ret *big.Int) {
-	ret = newUint(n)
-	ret.Mul(ret, o.encKey)
-	ret.Mod(ret, o.base)
-	return ret
+// ModMul computes a * b mod (m+1)
+//
+// It implements Schrage's algorithm, which is 2x faster than math/big.Int for
+// uint64 and below.
+func ModMul(a, b, m uint64) (ret uint64) {
+	if a == 0 || b == 0 {
+		return 0
+	}
+	if a == 1 {
+		return b
+	}
+	if b == 1 {
+		return a
+	}
+
+	q := m / a
+	r := m - a*q + 1
+	if r == a {
+		r = 0
+		q++
+	}
+
+	x := a * (b % q)
+	var y uint64
+	if r > q {
+		y = ModMul(r, b/q, m)
+	} else {
+		y = b / q
+		y *= r
+	}
+
+	if x >= y {
+		return x - y
+	}
+
+	return m - (y - x) + 1
 }
 
-func (o *obfus) dec(n uint64) (ret *big.Int) {
-	ret = newUint(n)
-	ret.Mul(ret, o.decKey)
-	ret.Mod(ret, o.base)
-	return ret
+type obfus struct {
+	max    uint64
+	encKey uint64
+	decKey uint64
+	a      uint64
+	b      uint64
+}
+
+func (o *obfus) enc(n uint64) (ret uint64) {
+	return ModMul(o.encKey, n, o.max)
+}
+
+func (o *obfus) dec(n uint64) (ret uint64) {
+	return ModMul(o.decKey, n, o.max)
 }
 
 func (o *obfus) Obfuscate(serial uint64) (ret uint64) {
 	switch serial {
-	case o.key:
+	case o.encKey:
 		return o.b
 	case o.a:
-		return o.key
+		return o.encKey
 	case 1:
 		return o.a
 	case 0:
 		return 0
 	}
 
-	return o.enc(serial).Uint64()
+	return o.enc(serial)
 }
 
 func (o *obfus) Explain(code uint64) (ret uint64, err error) {
 	switch code {
 	case o.b:
-		return o.key, nil
-	case o.key:
+		return o.encKey, nil
+	case o.encKey:
 		return o.a, nil
 	case o.a:
 		return 1, nil
@@ -116,12 +147,11 @@ func (o *obfus) Explain(code uint64) (ret uint64, err error) {
 		return 0, nil
 	}
 
-	x := newUint(code)
-	if x.Cmp(o.base) >= 0 {
+	if code > o.max {
 		err = ErrCode(code)
 		return
 	}
-	ret = o.dec(code).Uint64()
+	ret = o.dec(code)
 	return
 }
 
@@ -135,22 +165,26 @@ func Restore(max, key uint64) (ret Obfuscator, err error) {
 		return
 	}
 
-	base := (&big.Int{}).Add(newUint(max), big.NewInt(1))
 	d := &obfus{
-		base:   base,
-		encKey: newUint(key),
-		key:    key,
+		max:    max,
+		encKey: key,
 	}
 
-	x := (&big.Int{}).ModInverse(d.encKey, d.base)
+	x := (&big.Int{}).ModInverse(
+		newUint(d.encKey),
+		(&big.Int{}).Add(
+			newUint(d.max),
+			big.NewInt(1),
+		),
+	)
 	if x == nil {
 		err = ErrKey(key)
 		return
 	}
 
-	d.decKey = x
-	d.a = d.enc(key).Uint64()
-	d.b = d.enc(d.a).Uint64()
+	d.decKey = x.Uint64()
+	d.a = d.enc(key)
+	d.b = d.enc(d.a)
 	ret = d
 	return
 }

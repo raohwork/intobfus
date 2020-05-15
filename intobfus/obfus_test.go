@@ -7,8 +7,45 @@ package intobfus
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"testing"
 )
+
+func TestModMul8Bit(t *testing.T) {
+	max := uint64(math.MaxUint8)
+	base := max + 1
+	for i := uint64(0); i < base; i++ {
+		for j := uint64(0); j <= i; j++ {
+			expect := i * j
+			expect = expect % base
+			actual := ModMul(i, j, max)
+			if expect != actual {
+				t.Fatalf(
+					"%d*%d %% %d = %d (should be %d)",
+					i, j, 256, actual, expect,
+				)
+			}
+		}
+	}
+}
+
+func TestModMulExtream(t *testing.T) {
+	max := uint64(math.MaxUint64)
+
+	a := newUint(max)
+	e := (&big.Int{}).Mul(a, a)
+	expect := e.Mod(
+		e,
+		(&big.Int{}).Add(a, big.NewInt(1)),
+	).Uint64()
+	actual := ModMul(max, max, max)
+	if expect != actual {
+		t.Fatalf(
+			"%d*%d %% %d = %d (should be %d)",
+			max, max, max, actual, expect,
+		)
+	}
+}
 
 func ExampleObfuscator_obfuscate() {
 	// obfuscates 0~255 (1~255 actually)
